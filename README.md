@@ -42,16 +42,45 @@ pip install -r requirements.txt
 6. Connect your logic to the Streamlit UI in `app.py`.
 7. Refine UML so it matches what you actually built.
 
+## 🛠️ Implementation Summary
+
+The logic lives in `pawpal_system.py` as four classes that work together:
+
+- **`Task`** (dataclass): one care activity with a title, category, duration in minutes, priority (`low`/`medium`/`high`), frequency, completion status, and the name of the pet it belongs to. `mark_complete()` marks it done.
+- **`Pet`** (dataclass): a pet's name, species, age, and its list of tasks. `add_task()` attaches a task and tags it with the pet's name; `get_pending_tasks()` returns the ones not yet done.
+- **`Owner`** (dataclass): the owner's name, daily time budget in minutes, and a list of pets. `get_all_tasks()` returns every pet's tasks in one list.
+- **`Scheduler`**: the "brain". It reads tasks from `Owner.get_all_tasks()` (so it covers all pets, not one), keeps the pending ones, sorts them by priority (shortest first within a priority), and adds each task that still fits in the owner's time budget. Tasks that don't fit are recorded in `skipped`, and `explain_plan()` describes the result.
+
+Flow: `Owner` -> `Pet`s -> `Task`s are the data; `Scheduler(owner).generate_daily_plan()` turns that data into a plan. `main.py` is a terminal demo, and `tests/test_pawpal.py` holds the tests. The UML is in `diagrams/uml_draft.mmd`.
+
 ## 🖥️ Sample Output
 
-Paste a sample of your app's CLI or Streamlit output here so a reader can see what a generated plan looks like:
+Output of `python main.py`, which builds an owner with two pets and five tasks and prints the generated plan:
 
 ```
-# e.g.:
-# Daily plan for Biscuit (Golden Retriever):
-#   08:00 — Morning walk (30 min) [priority: high]
-#   09:00 — Feeding (10 min) [priority: high]
-#   ...
+====================================================
+  Today's Schedule for Sally
+  Pets: Robert, Mochi
+  Time used: 65 of 90 min
+====================================================
+#  Pet      Task               Min  Priority Repeats
+----------------------------------------------------
+1  Mochi    Flea medication      5  high     monthly
+2  Mochi    Feeding             10  high     daily
+3  Robert   Morning walk        30  high     daily
+4  Mochi    Playtime            20  medium   daily
+----------------------------------------------------
+Skipped (not enough time):
+  - Robert: Grooming (45 min, low)
+
+Plan for Sally: 65 of 90 minutes used.
+Tasks are ordered by priority (high first), then shortest first, and added while they still fit.
+  1. Flea medication for Mochi (5 min, high priority)
+  2. Feeding for Mochi (10 min, high priority)
+  3. Morning walk for Robert (30 min, high priority)
+  4. Playtime for Mochi (20 min, medium priority)
+Skipped (not enough time left):
+  - Grooming for Robert (45 min, low priority)
 ```
 
 ## 🧪 Testing PawPal+
@@ -59,16 +88,23 @@ Paste a sample of your app's CLI or Streamlit output here so a reader can see wh
 ```bash
 # Run the full test suite:
 pytest
-
-# Run with coverage:
-pytest --cov
 ```
+
+(`pytest --cov` needs the extra `pytest-cov` package, which is not installed.)
 
 Sample test output:
 
 ```
-# Paste your pytest output here
+======================== test session starts =========================
+platform win32 -- Python 3.13.1, pytest-9.1.1, pluggy-1.7.0
+collected 2 items
+
+tests\test_pawpal.py ..                                         [100%]
+
+========================= 2 passed in 0.02s ==========================
 ```
+
+The two tests check that `Task.mark_complete()` changes a task's status, and that adding a task to a `Pet` increases its task count.
 
 ## 📐 Smarter Scheduling
 

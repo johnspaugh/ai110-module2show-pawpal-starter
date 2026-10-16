@@ -25,11 +25,14 @@ classDiagram
         +int duration_minutes
         +str priority
         +bool completed
+        +str pet_name
         +mark_complete() None
     }
 
     class Scheduler {
         +Owner owner
+        +list~Task~ plan
+        +list~Task~ skipped
         +generate_daily_plan() list~Task~
         +explain_plan() str
     }
