@@ -55,32 +55,31 @@ Flow: `Owner` -> `Pet`s -> `Task`s are the data; `Scheduler(owner).generate_dail
 
 ## 🖥️ Sample Output
 
-Output of `python main.py`, which builds an owner with two pets and five tasks and prints the generated plan:
+Output of `python main.py`, which builds an owner with two pets and seven tasks, prints the plan, then demos sorting, filtering, recurrence and conflict warnings:
 
 ```
 ====================================================
   Today's Schedule for Sally
   Pets: Robert, Mochi
-  Time used: 65 of 90 min
+  Time used: 75 of 90 min
 ====================================================
 #  Pet      Task               Min  Priority Repeats
 ----------------------------------------------------
-1  Mochi    Flea medication      5  high     monthly
-2  Mochi    Feeding             10  high     daily
-3  Robert   Morning walk        30  high     daily
-4  Mochi    Playtime            20  medium   daily
+1  Robert   Heartworm pill       5  high     daily
+2  Mochi    Flea medication      5  high     monthly
+3  Mochi    Feeding             10  high     daily
+4  Robert   Morning walk        30  high     daily
+5  Mochi    Playtime            20  medium   daily
+6  Mochi    Brushing             5  low      daily
 ----------------------------------------------------
 Skipped (not enough time):
   - Robert: Grooming (45 min, low)
 
-Plan for Sally: 65 of 90 minutes used.
-Tasks are ordered by priority (high first), then shortest first, and added while they still fit.
-  1. Flea medication for Mochi (5 min, high priority)
-  2. Feeding for Mochi (10 min, high priority)
-  3. Morning walk for Robert (30 min, high priority)
-  4. Playtime for Mochi (20 min, medium priority)
-Skipped (not enough time left):
-  - Grooming for Robert (45 min, low priority)
+Conflict check:
+  Conflict (same pet): Robert's Morning walk (08:00-08:30) overlaps Robert's Heartworm pill (08:00-08:05)
+  Conflict (different pets): Robert's Morning walk (08:00-08:30) overlaps Mochi's Feeding (08:15-08:25)
+  Conflict (different pets): Robert's Morning walk (08:00-08:30) overlaps Mochi's Brushing (08:15-08:20)
+  Conflict (same pet): Mochi's Feeding (08:15-08:25) overlaps Mochi's Brushing (08:15-08:20)
 ```
 
 ## 🧪 Testing PawPal+
@@ -97,25 +96,40 @@ Sample test output:
 ```
 ======================== test session starts =========================
 platform win32 -- Python 3.13.1, pytest-9.1.1, pluggy-1.7.0
-collected 2 items
+collected 10 items
 
-tests\test_pawpal.py ..                                         [100%]
+tests\test_pawpal.py ..........                                 [100%]
 
-========================= 2 passed in 0.02s ==========================
+========================= 10 passed in 0.04s =========================
 ```
 
-The two tests check that `Task.mark_complete()` changes a task's status, and that adding a task to a `Pet` increases its task count.
+The tests check that `Task.mark_complete()` changes a task's status, that adding a task to a `Pet` increases its task count, sorting by time, filtering by pet and status, daily and weekly recurrence (and that `once` tasks don't repeat), and conflict detection (overlaps, same start time, and back-to-back tasks that don't conflict).
 
 ## 📐 Smarter Scheduling
 
-> Fill in once you've implemented scheduling logic.
+Tasks now have an optional `start_time` (`"HH:MM"`, 24-hour) and `due_date`, which the features below use.
 
 | Feature | Method(s) | Notes |
 |---------|-----------|-------|
-| Task sorting | | e.g., by priority, duration |
-| Filtering | | e.g., skip tasks if time runs out |
-| Conflict handling | | e.g., overlapping time slots |
-| Recurring tasks | | e.g., daily vs. weekly |
+| Plan ordering | `Scheduler.generate_daily_plan()` | Highest priority first, shortest first within a priority, added while it fits the time budget. |
+| Sorting by time | `Scheduler.sort_by_time()` | Orders tasks by start time, earliest first. Tasks with no start time go last. |
+| Filtering | `Scheduler.filter_tasks(pet_name, completed)` | Keeps tasks for one pet, only done or only pending tasks, or both filters together. |
+| Conflict detection | `Scheduler.detect_conflicts()` | Returns warning strings for overlapping tasks, same pet or different pets. |
+| Recurring tasks | `Task.mark_complete()`, `Pet.complete_task()` | Completing a daily, weekly or monthly task creates the next one. |
+
+### Sorting
+`sort_by_time()` sorts on the `"HH:MM"` text, which orders correctly because the times are zero-padded. It sorts all of the owner's tasks unless you pass it a list.
+
+### Filtering
+`filter_tasks(pet_name="Mochi", completed=False)` returns Mochi's pending tasks. Any filter left out is ignored, so `filter_tasks()` returns every task.
+
+### Conflict detection
+`detect_conflicts()` sorts the pending timed tasks by start time and compares each one with the tasks that start before it ends. Two tasks conflict when one starts before the other ends, so partial overlaps are caught as well as identical start times. A task that starts exactly when another ends is fine. The method returns messages and never raises, so the app can show a warning and carry on.
+
+Tradeoff: `generate_daily_plan()` does not use start times, so a generated plan can still contain overlapping tasks. The conflict check only warns; it does not rearrange anything. Times are also assumed to be on the same day.
+
+### Recurring tasks
+`Task.mark_complete()` marks the task done. For `daily`, `weekly` and `monthly` tasks it returns a copy that is not completed and is due `date.today() + timedelta(days=1 / 7 / 30)`; a `once` task returns `None`. `Pet.complete_task()` calls it and adds the new task to the pet. A monthly task repeats every 30 days, not on the same calendar date.
 
 ## 📸 Demo Walkthrough
 
