@@ -84,26 +84,34 @@ Conflict check:
 
 ## 🧪 Testing PawPal+
 
+Run the suite from the project root (with the virtual environment active):
+
 ```bash
-# Run the full test suite:
-pytest
+python -m pytest
 ```
 
-(`pytest --cov` needs the extra `pytest-cov` package, which is not installed.)
-
-Sample test output:
+Output of a successful run:
 
 ```
-======================== test session starts =========================
+============================= test session starts =============================
 platform win32 -- Python 3.13.1, pytest-9.1.1, pluggy-1.7.0
-collected 10 items
+rootdir: C:\Users\Lenovo PC\Documents\2026_Fall\AI_110_Foundations_of_AI_Engineering\codePratice\ai110-module2show-pawpal-starter
+collected 12 items
 
-tests\test_pawpal.py ..........                                 [100%]
+tests\test_pawpal.py ............                                        [100%]
 
-========================= 10 passed in 0.04s =========================
+============================= 12 passed in 0.05s ==============================
 ```
 
-The tests check that `Task.mark_complete()` changes a task's status, that adding a task to a `Pet` increases its task count, sorting by time, filtering by pet and status, daily and weekly recurrence (and that `once` tasks don't repeat), and conflict detection (overlaps, same start time, and back-to-back tasks that don't conflict).
+**What the tests cover** (`tests/test_pawpal.py`):
+
+- **Sorting:** tasks come back in chronological order, unscheduled tasks go last, the input list is not modified, and an empty list returns `[]`.
+- **Recurrence:** completing a daily task creates a new incomplete task due tomorrow on the same pet; weekly tasks are due in 7 days; `once` tasks create nothing.
+- **Conflict detection:** identical start times are flagged (same pet and different pets), back-to-back tasks are not, completed tasks are ignored, and no tasks gives no warnings.
+
+**Not yet tested:** partial/nested overlaps, zero-duration tasks, `end_time` past midnight, recurrence based on a task's own due date (it currently uses today's date), `filter_tasks`, and `generate_daily_plan`.
+
+**Confidence Level: ⭐⭐⭐⭐ (4 / 5)** All 12 tests pass, and they cover the three core behaviours (sorting, recurrence, conflicts) including key edge cases. I'm holding back one star because the daily plan, filtering and midnight-rollover cases have no tests yet. Also, some times would provide more than intended, but it was good. Thus, I kept it.
 
 ## 📐 Smarter Scheduling
 
