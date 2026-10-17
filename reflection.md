@@ -51,6 +51,8 @@ The priority since I created a dictionary for it
 - Describe one tradeoff your scheduler makes.
 - Why is that tradeoff reasonable for this scenario?
 the scheduler is greedy. A big high-priority task can crowd out several smaller ones,
+ut this is reasonable because it's easy to explain to a pet owner and high-priority care like medication should never be dropped for convenience."
+also the conflict tradeoff: "detect_conflicts only warns and doesn't change the plan, and generate_daily_plan ignores start times. That keeps the logic simple and never blocks the owner, but the generated plan can still contain overlapping tasks."
 ---
 
 ## 3. AI Collaboration
