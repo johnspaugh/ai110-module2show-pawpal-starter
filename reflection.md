@@ -17,7 +17,7 @@
 - **Task** – a single care activity with a title, category, duration in minutes, priority, and completed status. And method mark_complete()
 - **Scheduler** – And methods __init__(), generate_daily_plan(), explain_plan()
 
-Relationships: an Owner has many Pets, a Pet has many Tasks, and the Scheduler plans for one Owner and works with the Tasks that owner's pets need. The diagram is saved in `diagrams/uml_draft.mmd`.
+Relationships: an Owner has many Pets, a Pet has many Tasks, and the Scheduler plans for one Owner and works with the Tasks that owner's pets need. The diagram is saved in `diagrams/uml_draft.mmd`. The final version, with the methods and fields added later (sorting, filtering, conflict detection, recurrence, start times), is in `diagrams/uml_final.mmd`.
 
 **b. Design changes**
 
@@ -77,6 +77,26 @@ loop, was replaced with a for loop.
 funcitionally did the same, but the code provided was
 cleaner, so kept it after verify the same results by
 running the code.
+
+**c. AI strategy**
+
+*Which AI features were most effective for building the scheduler?*
+
+- **Design review of my own skeleton.** Asking the assistant to look for missing relationships and bottlenecks gave me concrete fixes (`Task.pet_name`, `PRIORITY_ORDER`, storing `plan` and `skipped`) before I wrote any scheduling logic.
+- **Working from the real file.** Attaching `pawpal_system.py` and asking for test cases and UML updates produced answers tied to my actual code. For example, the review of the code noticed that `mark_complete()` counts from today's date rather than the task's due date, and that `detect_conflicts` ignores zero-duration tasks.
+- **Running the code, not just writing it.** The assistant ran the tests and `main.py` and showed the real output, so the README output and the "12 passed" result come from actual runs.
+
+*One suggestion I rejected or modified:*
+
+At one point the assistant rewrote my whole `Scheduler` class. It was off from what I intended, and it had swapped every `while` loop for a `for` loop. I did not accept it as-is. I compared the result with my version and ran the code to confirm the output was identical. Only then did I keep the cleaner loops, and I discarded the rest of the rewrite so the design stayed the one I had drawn in the UML.
+
+*How separate chat sessions for different phases helped:*
+
+Each phase (design and UML, scheduling logic, testing, UI, documentation) had its own goal and its own files. Starting a fresh session for each one meant the assistant was not carrying old assumptions about the code. For testing, a clean session treated my code as a stranger would, which is closer to how a reviewer will read it. It also kept each conversation short enough that I could trace which decision came from where.
+
+*What I learned about being the lead architect:*
+
+The assistant is fast at producing code, but it does not know what I intend. My job was to decide the design (four classes, greedy planning, warn-only conflicts), then judge each suggestion against it. A suggestion can be correct and still wrong for the design. Being lead architect means writing the UML first, giving the assistant narrow tasks, asking for options instead of letting it change files unprompted, and verifying every change by running tests.
 ---
 
 ## 4. Testing and Verification
@@ -85,11 +105,14 @@ running the code.
 
 - What behaviors did you test?
 - Why were these tests important?
+test that the code and run and the expect output is displayed for owner, pet ant task
+the more important tasks generated in the schedular are tested for real suite checks sorting, recurrence and conflict detection,
 
 **b. Confidence**
 
 - How confident are you that your scheduler works correctly?
 - What edge cases would you test next if you had more time?
+that a schedular will display no conflict schedule with alot time best can be, but if I had more time, I would try to incorperate more task flagged out for having conflict of time.
 
 ---
 
@@ -98,11 +121,15 @@ running the code.
 **a. What went well**
 
 - What part of this project are you most satisfied with?
+The UI displaying the add pet and add task and schedule displayed
 
 **b. What you would improve**
 
 - If you had another iteration, what would you improve or redesign?
+how a owner is created or more owner to choose from the code, and similar redesign on how a pet is initiallized to create more on the UI side.
 
 **c. Key takeaway**
 
 - What is one important thing you learned about designing systems or working with AI on this project?
+
+The AI was able to stream line debugging my intial work, but some times when giving the prompts, AI would create thing different or other things not intended. However, when reviewing it, it was good, so kept. For example in this relection.md AI assistent gave 3.c and after reviewing I kept it, but this not building my self is not good, so need to verify everything to ensure security and it is still good code. As a good principle I think I will need to use more since AI assistent are likely to be used more. Thus, at least will always ask for permission to do anything first and provide options that I as software developer can evaluate to move in the direction I intend.

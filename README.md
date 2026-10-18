@@ -42,6 +42,18 @@ pip install -r requirements.txt
 6. Connect your logic to the Streamlit UI in `app.py`.
 7. Refine UML so it matches what you actually built.
 
+## ✨ Features
+
+- **Multiple pets, one owner:** every pet's tasks are pooled through `Owner.get_all_tasks()`, so the scheduler plans across all pets at once.
+- **Priority-based daily plan:** pending tasks are sorted high to low priority, shortest first within a priority, then added greedily while they fit the owner's daily minutes. Tasks that don't fit are recorded as skipped.
+- **Plan explanation:** `explain_plan()` reports minutes used, the order chosen and what was skipped.
+- **Sorting by time:** tasks are ordered by `HH:MM` start time, earliest first, with unscheduled tasks last. The original list is never modified.
+- **Filtering:** by pet, by completed or pending status, or both together.
+- **Conflict warnings:** any two pending timed tasks that overlap, for the same pet or different pets, produce a readable warning. Back-to-back tasks are not flagged, and nothing is raised, so the UI can warn and carry on.
+- **Recurring tasks:** completing a daily, weekly or monthly task creates the next occurrence (due in 1, 7 or 30 days). A `once` task does not repeat.
+- **Computed end times:** each task with a start time knows when it finishes, which the conflict messages use.
+- **Streamlit UI and CLI demo:** `app.py` exposes all of the above; `main.py` prints the same behaviours in the terminal.
+
 ## 🛠️ Implementation Summary
 
 The logic lives in `pawpal_system.py` as four classes that work together:
@@ -51,7 +63,7 @@ The logic lives in `pawpal_system.py` as four classes that work together:
 - **`Owner`** (dataclass): the owner's name, daily time budget in minutes, and a list of pets. `get_all_tasks()` returns every pet's tasks in one list.
 - **`Scheduler`**: the "brain". It reads tasks from `Owner.get_all_tasks()` (so it covers all pets, not one), keeps the pending ones, sorts them by priority (shortest first within a priority), and adds each task that still fits in the owner's time budget. Tasks that don't fit are recorded in `skipped`, and `explain_plan()` describes the result.
 
-Flow: `Owner` -> `Pet`s -> `Task`s are the data; `Scheduler(owner).generate_daily_plan()` turns that data into a plan. `main.py` is a terminal demo, and `tests/test_pawpal.py` holds the tests. The UML is in `diagrams/uml_draft.mmd`.
+Flow: `Owner` -> `Pet`s -> `Task`s are the data; `Scheduler(owner).generate_daily_plan()` turns that data into a plan. `main.py` is a terminal demo, and `tests/test_pawpal.py` holds the tests. The final UML is in `diagrams/uml_final.mmd` (the original design is in `diagrams/uml_draft.mmd`).
 
 ## 🖥️ Sample Output
 
@@ -139,14 +151,92 @@ Tradeoff: `generate_daily_plan()` does not use start times, so a generated plan 
 ### Recurring tasks
 `Task.mark_complete()` marks the task done. For `daily`, `weekly` and `monthly` tasks it returns a copy that is not completed and is due `date.today() + timedelta(days=1 / 7 / 30)`; a `once` task returns `None`. `Pet.complete_task()` calls it and adds the new task to the pet. A monthly task repeats every 30 days, not on the same calendar date.
 
-## 📸 Demo Walkthrough
+## 🎬 Demo Walkthrough
 
-Describe your app in numbered steps so a reader can follow along without watching a video:
+Start the app with `streamlit run app.py`, or see the terminal version with `python main.py`.
 
-1. <!-- Describe this step -->
-2. <!-- Describe this step -->
-3. <!-- Describe this step -->
-4. <!-- Describe this step -->
-5. <!-- Add more steps as needed -->
+### What you can do in the app
 
-**Screenshot or video** *(optional)*: <!-- Insert a screenshot or link to a demo video here -->
+- **Set up the owner:** edit the owner's name and how many minutes they have each day.
+- **Add pets:** enter a name, species and age. A table lists each pet and its task count.
+- **Add tasks:** pick a pet, then set the title, category, duration, priority, how often it repeats (daily, weekly, monthly or once) and an optional `HH:MM` start time.
+- **Review tasks:** filter the task table by pet and by status (pending or completed). It is always sorted by start time, with unscheduled tasks last.
+- **Complete tasks:** choose a task from the dropdown and press "Complete task". Repeating tasks get their next occurrence automatically.
+- **Generate the schedule:** press "Generate schedule" to see today's plan, the minutes used, any skipped tasks and an explanation of why.
+
+### Example workflow
+
+1. The owner starts as "Jordan" with 120 minutes a day. Change the name or minutes if you like.
+2. Add a pet, for example Mochi the cat.
+3. Add two tasks for Mochi: "Feeding" at 08:15 for 10 minutes and "Brushing" at 08:15 for 5 minutes.
+4. A yellow warning appears above the task list: Mochi's Feeding overlaps Mochi's Brushing. Change one start time and the warning turns into a green "No time conflicts" message.
+5. Press "Generate schedule". High-priority tasks come first and the plan stops when the day's minutes run out.
+6. Mark "Feeding" complete. Because it repeats daily, a new "Feeding" task appears, due tomorrow.
+
+### Scheduler behaviours on show
+
+- **Sorting by time:** the task table and the "Sorted by time" CLI section order tasks by start time.
+- **Filtering:** the task table filters by pet and status; the CLI shows one pet's tasks.
+- **Conflict warnings:** each overlap gets its own warning that names both tasks, both pets and both time ranges. Back-to-back tasks are not flagged.
+- **Recurrence:** completing a daily, weekly or monthly task creates the next one and reports its due date.
+- **Time budget:** tasks that don't fit are skipped and listed rather than dropped silently.
+
+### Sample CLI output
+
+Output of `python main.py`. The "Completed 'Grooming'" due date is today plus 7 days, so it changes with the day you run it.
+
+```
+====================================================
+  Today's Schedule for Sally
+  Pets: Robert, Mochi
+  Time used: 75 of 90 min
+====================================================
+#  Pet      Task               Min  Priority Repeats
+----------------------------------------------------
+1  Robert   Heartworm pill       5  high     daily
+2  Mochi    Flea medication      5  high     monthly
+3  Mochi    Feeding             10  high     daily
+4  Robert   Morning walk        30  high     daily
+5  Mochi    Playtime            20  medium   daily
+6  Mochi    Brushing             5  low      daily
+----------------------------------------------------
+Skipped (not enough time):
+  - Robert: Grooming (45 min, low)
+
+Plan for Sally: 75 of 90 minutes used.
+Tasks are ordered by priority (high first), then shortest first, and added while they still fit.
+  1. Heartworm pill for Robert (5 min, high priority)
+  2. Flea medication for Mochi (5 min, high priority)
+  3. Feeding for Mochi (10 min, high priority)
+  4. Morning walk for Robert (30 min, high priority)
+  5. Playtime for Mochi (20 min, medium priority)
+  6. Brushing for Mochi (5 min, low priority)
+Skipped (not enough time left):
+  - Grooming for Robert (45 min, low priority)
+
+Sorted by time:
+  07:30  Mochi: Playtime
+  08:00  Robert: Morning walk
+  08:00  Robert: Heartworm pill
+  08:15  Mochi: Feeding
+  08:15  Mochi: Brushing
+  17:00  Robert: Grooming
+  --:--  Mochi: Flea medication
+
+Mochi's tasks only:
+  Feeding
+  Brushing
+  Playtime
+  Flea medication
+
+Completed 'Grooming'; next one due 2026-10-24
+Pending after completion: 7
+
+Conflict check:
+  Conflict (same pet): Robert's Morning walk (08:00-08:30) overlaps Robert's Heartworm pill (08:00-08:05)
+  Conflict (different pets): Robert's Morning walk (08:00-08:30) overlaps Mochi's Feeding (08:15-08:25)
+  Conflict (different pets): Robert's Morning walk (08:00-08:30) overlaps Mochi's Brushing (08:15-08:20)
+  Conflict (same pet): Mochi's Feeding (08:15-08:25) overlaps Mochi's Brushing (08:15-08:20)
+```
+
+**Screenshot or video** *(optional)*: add one here for human reviewers.

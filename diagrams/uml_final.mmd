@@ -1,0 +1,69 @@
+classDiagram
+    class Owner {
+        +str name
+        +int available_minutes_per_day
+        +list~str~ preferences
+        +list~Pet~ pets
+        +add_pet(pet: Pet) None
+        +remove_pet(pet: Pet) None
+        +get_all_tasks() list~Task~
+    }
+
+    class Pet {
+        +str name
+        +str species
+        +int age
+        +list~Task~ tasks
+        +add_task(task: Task) None
+        +remove_task(task: Task) None
+        +complete_task(task: Task) Task
+        +get_pending_tasks() list~Task~
+    }
+
+    class Task {
+        +str title
+        +str category
+        +int duration_minutes
+        +str priority
+        +str frequency
+        +bool completed
+        +str pet_name
+        +str start_time
+        +date due_date
+        +end_time str
+        +mark_complete() Task
+    }
+
+    class Scheduler {
+        +Owner owner
+        +list~Task~ plan
+        +list~Task~ skipped
+        +generate_daily_plan() list~Task~
+        +sort_by_time(tasks: list~Task~) list~Task~
+        +filter_tasks(pet_name: str, completed: bool) list~Task~
+        +detect_conflicts() list~str~
+        +explain_plan() str
+    }
+
+    class PRIORITY_ORDER {
+        <<constant>>
+        low = 1
+        medium = 2
+        high = 3
+    }
+
+    class RECURRENCE_DAYS {
+        <<constant>>
+        daily = 1
+        weekly = 7
+        monthly = 30
+    }
+
+    Owner "1" o-- "*" Pet : has
+    Pet "1" o-- "*" Task : needs
+    Scheduler --> Owner : plans for
+    Scheduler ..> Task : orders, filters and checks for conflicts
+    Pet ..> Task : complete_task() adds the next occurrence
+    Task ..> Task : mark_complete() copies itself if it recurs
+    Scheduler ..> PRIORITY_ORDER : sorts by priority
+    Task ..> RECURRENCE_DAYS : looks up days until next due
